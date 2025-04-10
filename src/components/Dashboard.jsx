@@ -18,7 +18,6 @@ import {
 import { format, parseISO } from "date-fns";
 
 
-
 const Dashboard = () => {
   const [alerts, setAlerts] = useState([]);
   const [filteredAlerts, setFilteredAlerts] = useState([]);
@@ -95,8 +94,7 @@ useEffect(() => {
 
   const aggregateAlertsByDateAndSeverity = (alerts) => {
     const counts = alerts.reduce((acc, alert) => {
-      const timestamp = new Date(alert.created_at).getTime(); // Get full timestamp in milliseconds
-//old      const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
+      const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
       const severity = alert.rule?.severity || "unknown";
   
       if (!acc[date]) {
@@ -156,7 +154,7 @@ useEffect(() => {
   //  };
 
   const formatXAxis = (tickItem) => {
-    return format(new Date(tickItem), "MMM dd, yyyy HH:mm:ss");
+    return format(new Date(tickItem), "MMM dd, yyyy");
   };
 
   useEffect(() => {
@@ -266,7 +264,7 @@ useEffect(() => {
           />
           <YAxis />
           <Tooltip
-            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
+            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy")}
           />
           <Legend />
           <Line type="monotone" dataKey="error" stroke="#ff0000" name="Errors" />
