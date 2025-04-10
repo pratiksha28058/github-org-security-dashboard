@@ -154,7 +154,7 @@ useEffect(() => {
   //  };
 
   const formatXAxis = (tickItem) => {
-    return format(new Date(tickItem), "MMM dd, yyyy");
+    return format(new Date(tickItem), "MMM dd, yyyy HH:mm:ss");
   };
 
   useEffect(() => {
@@ -264,7 +264,7 @@ useEffect(() => {
           />
           <YAxis />
           <Tooltip
-            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy")}
+            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
           />
           <Legend />
           <Line type="monotone" dataKey="error" stroke="#ff0000" name="Errors" />
