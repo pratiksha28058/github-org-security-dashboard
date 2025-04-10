@@ -1,4 +1,4 @@
-const token = import.meta.env.VITE_GITHUB_API_TOKEN;
+const token = import.meta.env.VITE_API_KEY;
 
 export async function fetchRepositories(org) {
   const endpoint = `https://api.github.com/orgs/${org}/repos?per_page=100`;
