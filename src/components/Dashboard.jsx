@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { fetchRepositories, fetchSecurityAlerts } from 'src/GithubService.jsx';
+//import GithubService from '@/GithubService.jsx';
+
+import { fetchRepositories, fetchSecurityAlerts } from '@/GithubService.jsx';
 import {
   LineChart,
   BarChart,
