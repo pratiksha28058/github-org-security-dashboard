@@ -273,7 +273,7 @@ useEffect(() => {
           />
           <YAxis />
           <Tooltip
-            labelFormatter={(formatXAxis) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
+            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
           />
           <Legend />
           <Line type="monotone" dataKey="value" stroke="#8884d8" />
