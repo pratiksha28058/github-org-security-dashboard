@@ -267,8 +267,8 @@ useEffect(() => {
           <XAxis
             dataKey="timestamp"
             type="number"
-            //domain={["auto", "auto"]}
-            domain={['dataMin', 'dataMax']}
+            domain={["auto", "auto"]}
+            //domain={['dataMin', 'dataMax']}
             tickFormatter={formatXAxis}
           />
           <YAxis />
@@ -276,7 +276,7 @@ useEffect(() => {
             labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
           />
           <Legend />
-          <Line type="monotone" dataKey="value" stroke="#8884d8" />
+          //<Line type="monotone" dataKey="value" stroke="#8884d8" />
           <Line type="monotone" dataKey="error" stroke="#ff0000" name="Errors" />
           <Line type="monotone" dataKey="warning" stroke="#ffa500" name="Warnings" />
           <Line type="monotone" dataKey="note" stroke="#0000ff" name="Notes" />
