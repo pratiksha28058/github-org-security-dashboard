@@ -132,7 +132,8 @@ useEffect(() => {
 
   const aggregateAlertsByDate = (alerts) => {
     const counts = alerts.reduce((acc, alert) => {
-      const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
+      //const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
+      const timestamp = new Date(alert.created_at).getTime();
       const severity = alert.rule?.severity || "unknown";
       acc[date] = (acc[date] || 0) + 1;
 
