@@ -1,11 +1,11 @@
-const token = import.meta.env.VITE_GITHUB_API_TOKEN;
+const token = import.meta.env.VITE_API_KEY;
 
 export async function fetchRepositories(org) {
   const endpoint = `https://api.github.com/orgs/${org}/repos?per_page=100`;
 
   const response = await fetch(endpoint, {
     headers: {
-      Authorization: `token ${{ secrets.VITE_GITHUB_API_TOKEN }}`,
+      Authorization: `token ${token}`,
       Accept: 'application/vnd.github+json',
     },
   });
@@ -23,7 +23,7 @@ export async function fetchSecurityAlerts(org, repoName) {
 
   const response = await fetch(endpoint, {
     headers: {
-      Authorization: `token ${{ secrets.VITE_GITHUB_API_TOKEN }}`,
+      Authorization: `token ${token}`,
       Accept: 'application/vnd.github+json',
     },
   });
