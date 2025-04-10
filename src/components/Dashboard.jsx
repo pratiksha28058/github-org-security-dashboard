@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [selectedRepo, setSelectedRepo] = useState('');
 
 
+  
   // Fetch repositories
   useEffect(() => {
     async function getRepositories() {
@@ -155,6 +156,11 @@ useEffect(() => {
   //    }));
   //  };
 
+  const data = [
+  { timestamp: 1617187200000, value: 100 }, // Example data point
+  // Add more data points
+];
+  
   const formatXAxis = (tickItem) => {
     return format(new Date(tickItem), "MMM dd, yyyy HH:mm:ss");
   };
