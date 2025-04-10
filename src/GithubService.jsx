@@ -5,7 +5,7 @@ export async function fetchRepositories(org) {
 
   const response = await fetch(endpoint, {
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `token ${{ secrets.VITE_GITHUB_API_TOKEN }}`,
       Accept: 'application/vnd.github+json',
     },
   });
@@ -23,7 +23,7 @@ export async function fetchSecurityAlerts(org, repoName) {
 
   const response = await fetch(endpoint, {
     headers: {
-      Authorization: `token ${token}`,
+      Authorization: `token ${{ secrets.VITE_GITHUB_API_TOKEN }}`,
       Accept: 'application/vnd.github+json',
     },
   });
