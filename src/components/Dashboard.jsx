@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
-//import GithubService from '@/GithubService.jsx';
-
-import { fetchRepositories, fetchSecurityAlerts } from '@/GithubService.jsx';
+import { fetchRepositories, fetchSecurityAlerts } from '../GitHubService';
 import {
   LineChart,
   BarChart,
@@ -13,6 +11,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 
 import { format, parseISO } from "date-fns";
@@ -33,7 +34,6 @@ const Dashboard = () => {
   const [selectedRepo, setSelectedRepo] = useState('');
 
 
-  
   // Fetch repositories
   useEffect(() => {
     async function getRepositories() {
@@ -94,13 +94,13 @@ useEffect(() => {
 
 
   const aggregateAlertsByDateAndSeverity = (alerts) => {
-    const counts = alerts.reduce((acc, alert) => {
-      const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
-      const timestamp = new Date(alert.created_at).getTime();
+    const openAlerts = alerts.filter(alert => alert.state === 'open');
+    const counts = openAlerts.reduce((acc, alert) => {
+      const date = alert.updated_at.split("T")[0];
       const severity = alert.rule?.severity || "unknown";
   
       if (!acc[date]) {
-        acc[date] = { date, timestamp: parseISO(date).getTime(), error: 0, warning: 0, note: 0, unknown: 0 };
+        acc[date] = { date, timestamp: new Date(date).getTime(), error: 0, warning: 0, note: 0, unknown: 0 };
       }
       acc[date][severity] += 1;
   
@@ -111,17 +111,21 @@ useEffect(() => {
   };
   
   
+
+  
   useEffect(() => {
     async function getAlerts() {
       const data = await fetchSecurityAlerts();
-      const aggregatedData = aggregateAlertsByDateAndSeverity(data);
+      //const aggregatedData = aggregateAlertsByDateAndSeverity(data);
+      const aggregatedData = aggregateOpenAlertsByDateAndSeverity(filteredAlerts);
       console.log("GitHub Security Alerts:", data);
       setAlerts(data);
       setFilteredAlerts(data);
       setChartData(aggregatedData);
     }
+    
     getAlerts();
-  }, []);
+  }, [filteredAlerts]);
 
 
   useEffect(() => {
@@ -130,11 +134,71 @@ useEffect(() => {
   }, [filteredAlerts]);
 
   
+  const aggregateDailyAlertTrends = (alerts) => {
+    if (!alerts.length) return [];
+  
+    const today = new Date();
+    const startDate = new Date(
+      Math.min(...alerts.map(a => new Date(a.created_at)))
+    );
+  
+    // Create daily buckets
+    const dateMap = {};
+    for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      dateMap[dateStr] = {
+        date: dateStr,
+        timestamp: new Date(dateStr).getTime(),
+        open: 0,
+        dismissed: 0,
+        fixed: 0,
+      };
+    }
+  
+    // Populate buckets
+    alerts.forEach(alert => {
+      const created = new Date(alert.created_at);
+      const end = alert.dismissed_at
+        ? new Date(alert.dismissed_at)
+        : alert.fixed_at
+        ? new Date(alert.fixed_at)
+        : today;
+      const state = alert.state;
+  
+      for (let d = new Date(created); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        if (!dateMap[dateStr]) continue;
+  
+        if (state === 'open') {
+          dateMap[dateStr].open += 1;
+        } else if (state === 'dismissed') {
+          dateMap[dateStr].dismissed += 1;
+        } else if (state === 'fixed') {
+          dateMap[dateStr].fixed += 1;
+        }
+      }
+    });
+  
+    return Object.values(dateMap).sort((a, b) => a.timestamp - b.timestamp);
+  };
+  
+
+  useEffect(() => {
+    const dailyTrendData = aggregateDailyAlertTrends(filteredAlerts);
+    setChartData(dailyTrendData);
+  }, [filteredAlerts]);
+  
+
+  // useEffect(() => {
+  //   const aggregatedData = aggregateAlertsByDateSeverityAndState(filteredAlerts);
+  //   setChartData(aggregatedData);
+  // }, [filteredAlerts]);
+  
+
 
   const aggregateAlertsByDate = (alerts) => {
     const counts = alerts.reduce((acc, alert) => {
-      //const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
-      const timestamp = new Date(alert.created_at).getTime();
+      const date = alert.created_at.split("T")[0]; // Extract YYYY-MM-DD
       const severity = alert.rule?.severity || "unknown";
       acc[date] = (acc[date] || 0) + 1;
 
@@ -156,14 +220,40 @@ useEffect(() => {
   //    }));
   //  };
 
-  const data = [
-  { timestamp: 1617187200000, value: 100 }, // Example data point
-  // Add more data points
-];
-  
   const formatXAxis = (tickItem) => {
-    return format(new Date(tickItem), "MMM dd, yyyy HH:mm:ss");
+    return format(new Date(tickItem), "MMM dd, yyyy HH:mm");
   };
+
+
+  //Saving State to localStorage:
+  useEffect(() => {
+    const stateToPersist = {
+      selectedRepo,
+      selectedSeverity,
+      selectedState,
+      selectedRepository,
+    };
+    localStorage.setItem('dashboardState', JSON.stringify(stateToPersist));
+  }, [selectedRepo, selectedSeverity, selectedState, selectedRepository]);
+  
+
+  //Retrieving State from localStorage on Component Mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('dashboardState');
+    if (savedState) {
+      const {
+        selectedRepo,
+        selectedSeverity,
+        selectedState,
+        selectedRepository,
+      } = JSON.parse(savedState);
+      setSelectedRepo(selectedRepo);
+      setSelectedSeverity(selectedSeverity);
+      setSelectedState(selectedState);
+      setSelectedRepository(selectedRepository);
+    }
+  }, []);
+  
 
   useEffect(() => {
     if (filter === "all") {
@@ -172,6 +262,82 @@ useEffect(() => {
       setFilteredAlerts(alerts.filter(alert => alert.rule?.severity === filter));
     }
   }, [filter, alerts]);
+
+
+
+
+ // Count all open severity alerts
+const openAlertsCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open'
+).length;
+
+  // Count open error severity alerts
+  const openErrorCount = filteredAlerts.filter(
+    (alert) => alert.state === 'open' && alert.rule?.severity === 'error'
+  ).length;
+
+ // Count all open warning severity alerts
+ const openWarningCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open'  && alert.rule?.severity === 'warning'
+).length;
+
+// Count all open Notes severity alerts
+const openNotesCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open'  && alert.rule?.severity === 'note'
+).length;
+
+
+// Count all dismissed severity alerts
+const DimissedCount = filteredAlerts.filter(
+  (alert) => alert.state === 'closed'  && alert.state === 'dismissed'
+).length;
+
+
+// Count critical security_severity_level alerts
+const CriticalSeverityCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open' && alert.rule?.security_severity_level === 'critical' 
+).length;
+
+// Count High security_severity_level alerts
+const HighSeverityCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open' && alert.rule?.security_severity_level === 'high' 
+).length;
+
+// Count Low security_severity_level alerts
+const LowSeverityCount = filteredAlerts.filter(
+  (alert) => alert.state === 'open' && alert.rule?.security_severity_level === 'low' 
+).length;
+
+
+// Filter Closed Error Alerts
+
+const closedErrorAlerts = alerts.filter(
+  (alert) =>
+    alert.rule?.severity === 'error' &&
+    (alert.state === 'dismissed' || alert.state === 'fixed')
+);
+
+const closedErrorCounts = closedErrorAlerts.reduce((acc, alert) => {
+  const state = alert.state;
+  acc[state] = (acc[state] || 0) + 1;
+  return acc;
+}, {});
+
+
+//Transform the count into pie chart-friendly data:
+
+const pieData = Object.keys(closedErrorCounts).map((state) => ({
+  name: state.charAt(0).toUpperCase() + state.slice(1), // Capitalize
+  value: closedErrorCounts[state],
+}));
+
+
+//Define Colors for the Pie
+const pieColors = {
+  dismissed: '#8884d8',
+  fixed: '#82ca9d',
+};
+
 
   // Count alerts by severity
   const severityCounts = alerts.reduce((acc, alert) => {
@@ -214,6 +380,80 @@ useEffect(() => {
 
 
 <h2>Apply Filters</h2>
+
+
+<div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+  <div style={{
+    backgroundColor: '#e6f7ff',
+    border: '1px solid #1890ff',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Total Open Alerts:</strong> {openAlertsCount}
+  </div>
+
+  <div style={{
+    backgroundColor: '#E9573F',
+    border: '1px solidrgb(255, 24, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Errors:</strong> {openErrorCount}
+  </div>
+
+  <div style={{
+    backgroundColor: '#F6BB42',
+    border: '1px solidrgb(224, 255, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Warnings:</strong> {openWarningCount}
+  </div>
+
+
+ <div style={{
+    backgroundColor: '#8CC152',
+    border: '1px solidrgb(224, 255, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Notes:</strong> {openNotesCount}
+  </div>
+
+
+
+  <div style={{
+    backgroundColor: '#E9573F',
+    border: '1px solidrgb(224, 255, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Critical:</strong> {CriticalSeverityCount}
+  </div>
+
+
+  <div style={{
+    backgroundColor: '#F6BB42',
+    border: '1px solidrgb(224, 255, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>High:</strong> {HighSeverityCount}
+  </div>
+
+  <div style={{
+    backgroundColor: '#8CC152',
+    border: '1px solidrgb(224, 255, 24)',
+    padding: '1rem',
+    borderRadius: '8px'
+  }}>
+    <strong>Low:</strong> {LowSeverityCount}
+  </div>
+
+
+
+</div>
+
 
 
 {/* Repository Filter Dropdown */}
@@ -268,19 +508,16 @@ useEffect(() => {
             dataKey="timestamp"
             type="number"
             domain={["auto", "auto"]}
-            //domain={['dataMin', 'dataMax']}
-            tickFormatter={formatXAxis}
+            tickFormatter={(tick) => format(new Date(tick), "MMM dd, yyyy HH:mm")}
           />
           <YAxis />
           <Tooltip
-            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm:ss")}
+            labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm")}
           />
           <Legend />
-          //<Line type="monotone" dataKey="value" stroke="#8884d8" />
-          <Line type="monotone" dataKey="error" stroke="#ff0000" name="Errors" />
-          <Line type="monotone" dataKey="warning" stroke="#ffa500" name="Warnings" />
-          <Line type="monotone" dataKey="note" stroke="#0000ff" name="Notes" />
-          <Line type="monotone" dataKey="unknown" stroke="#808080" name="Unknown" />
+          <Line type="monotone" dataKey="open" stroke="#FF0000" name="Open Total" />
+          <Line type="monotone" dataKey="dismissed" stroke="#00AA00" name="Dismissed Total" />
+          <Line type="monotone" dataKey="fixed" stroke="#0000FF" name="Fixed Total" />
         </LineChart>
       </ResponsiveContainer>
 
@@ -299,6 +536,7 @@ useEffect(() => {
         <th>State</th>
         <th>Created</th>
         <th>Dismissed</th>
+        <th>Updated</th>
         <th>url</th>
         <th>Link</th>
       </tr>
@@ -312,6 +550,7 @@ useEffect(() => {
           <td>{alert.state}</td>
           <td>{alert.created_at}</td>
           <td>{alert.dismissed_at}</td>
+          <td>{alert.updated_at}</td>
           <td>{alert.html_url}</td>
 
           <td>
