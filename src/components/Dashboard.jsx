@@ -23,8 +23,7 @@ import {
 } from 'recharts';
 
 import { format, parseISO } from "date-fns";
-import { Card, CardContent } from "../components/ui/card";
-import { Separator } from "../components/ui/separator";
+
 
 
 
