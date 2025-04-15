@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 //import GithubService from '@/GithubService.jsx';
 
-import { fetchRepositories, fetchSecurityAlerts } from '@/GithubService.jsx';
+// import { fetchRepositories, fetchSecurityAlerts } from '@/GithubService.jsx';
+// import React, { useEffect, useState } from "react";
+import { fetchRepositories, fetchSecurityAlerts  } from '@/GithubService.jsx';
 import {
   LineChart,
   BarChart,
@@ -13,9 +15,18 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area
 } from 'recharts';
 
 import { format, parseISO } from "date-fns";
+import { Card, CardContent } from "../components/ui/card";
+import { Separator } from "../components/ui/separator";
+
+
 
 
 const Dashboard = () => {
@@ -31,6 +42,11 @@ const Dashboard = () => {
   const [selectedRepository, setSelectedRepository] = useState('all');
   const [org] = useState('pratiksha28058'); // Your organization name
   const [selectedRepo, setSelectedRepo] = useState('');
+  const [secretScanningData, setSecretScanningData] = useState([]);
+  const [reopenedAlertsData, setReopenedAlertsData] = useState([]);
+  const [costData, setCostData] = useState([]);
+  const [fixedChartData, setFixedChartData] = useState([]);
+  const [reopenedChartData, setReopenedChartData] = useState([]);
 
 
   // Fetch repositories
@@ -92,6 +108,8 @@ useEffect(() => {
   }, []);
 
 
+
+  //All Open Alerts
   const aggregateAlertsByDateAndSeverity = (alerts) => {
     const openAlerts = alerts.filter(alert => alert.state === 'open');
     const counts = openAlerts.reduce((acc, alert) => {
@@ -110,7 +128,6 @@ useEffect(() => {
   };
   
   
-
   
   useEffect(() => {
     async function getAlerts() {
@@ -212,12 +229,7 @@ useEffect(() => {
     return Object.values(counts).sort((a, b) => a.timestamp - b.timestamp);
   };
 
-  //   return Object.keys(counts).map((date) => ({
-  //      date,
-  //      count: counts[date],
-  //      timestamp: parseISO(date).getTime(),
-  //    }));
-  //  };
+
 
   const formatXAxis = (tickItem) => {
     return format(new Date(tickItem), "MMM dd, yyyy HH:mm");
@@ -236,31 +248,6 @@ useEffect(() => {
   }, [selectedRepo, selectedSeverity, selectedState, selectedRepository]);
   
 
-  //Retrieving State from localStorage on Component Mount
-  useEffect(() => {
-    const savedState = localStorage.getItem('dashboardState');
-    if (savedState) {
-      const {
-        selectedRepo,
-        selectedSeverity,
-        selectedState,
-        selectedRepository,
-      } = JSON.parse(savedState);
-      setSelectedRepo(selectedRepo);
-      setSelectedSeverity(selectedSeverity);
-      setSelectedState(selectedState);
-      setSelectedRepository(selectedRepository);
-    }
-  }, []);
-  
-
-  useEffect(() => {
-    if (filter === "all") {
-      setFilteredAlerts(alerts);
-    } else {
-      setFilteredAlerts(alerts.filter(alert => alert.rule?.severity === filter));
-    }
-  }, [filter, alerts]);
 
 
 
@@ -308,7 +295,7 @@ const LowSeverityCount = filteredAlerts.filter(
 ).length;
 
 
-// Filter Closed Error Alerts
+// Filter Fixed Error Alerts
 
 const closedErrorAlerts = alerts.filter(
   (alert) =>
@@ -322,20 +309,6 @@ const closedErrorCounts = closedErrorAlerts.reduce((acc, alert) => {
   return acc;
 }, {});
 
-
-//Transform the count into pie chart-friendly data:
-
-const pieData = Object.keys(closedErrorCounts).map((state) => ({
-  name: state.charAt(0).toUpperCase() + state.slice(1), // Capitalize
-  value: closedErrorCounts[state],
-}));
-
-
-//Define Colors for the Pie
-const pieColors = {
-  dismissed: '#8884d8',
-  fixed: '#82ca9d',
-};
 
 
   // Count alerts by severity
@@ -369,9 +342,9 @@ const pieColors = {
 
     setFilteredAlerts(filtered);
   }, [selectedSeverity, selectedState, selectedRepository, alerts]);
-
-
-    //Fixed Chart Data 
+  
+  
+  //Fixed Chart Data 
   const aggregateFixedAlerts = (alerts) => {
     const fixedAlerts = alerts.filter(alert => alert.fixed_at);
   
@@ -429,7 +402,9 @@ setReopenedChartData(reopenedData);
 }, [filteredAlerts]);
 
 
-  
+
+
+
 
   return (
     <div>
@@ -556,10 +531,9 @@ setReopenedChartData(reopenedData);
 
 
 
+<h2>Detection</h2>
 
-
-
-      <h4>GitHub Security Alerts Over Time Line</h4>
+      <h4>All Alerts Over Time</h4>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData}>
           <XAxis
@@ -578,6 +552,7 @@ setReopenedChartData(reopenedData);
           <Line type="monotone" dataKey="fixed" stroke="#0000FF" name="Fixed Total" />
         </LineChart>
       </ResponsiveContainer>
+
 
       <h4>ReOpened Alerts Over Time</h4>
       <ResponsiveContainer width="100%" height={300}>
@@ -616,11 +591,30 @@ setReopenedChartData(reopenedData);
 
 
 
-      
-      <h3>GitHub Security Alerts Table</h3>
+
+
+
+
+<h4>Time to Fix</h4>
+Analyzes the average duration taken to remediate alerts, helping assess the efficiency of your response processes
+
+
+
+<h4>Dismissed Alert</h4>
+Counts the alerts that have been dismissed, providing insight into potential false positives or accepted risks
+
+
+
+<h2>Prevention </h2>
+<h4>Prevented Vulnerabilities</h4>
+Displays the number of vulnerabilities that were detected and prevented before merging into the main branch
+
+
+
+<h2>GitHub Security Alerts Table</h2>
 
 {filteredAlerts.length === 0 ? (
-  <p>No security issues found! ✅</p>
+  <p>No security issues found! </p>
 ) : (
   <table border="1">
     <thead>
