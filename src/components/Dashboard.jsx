@@ -369,7 +369,66 @@ const pieColors = {
 
     setFilteredAlerts(filtered);
   }, [selectedSeverity, selectedState, selectedRepository, alerts]);
+
+
+    //Fixed Chart Data 
+  const aggregateFixedAlerts = (alerts) => {
+    const fixedAlerts = alerts.filter(alert => alert.fixed_at);
   
+    const counts = fixedAlerts.reduce((acc, alert) => {
+      const date = alert.fixed_at .split("T")[0]; // Only date part
+      if (!acc[date]) {
+        acc[date] = {
+          date,
+          timestamp: new Date(date).getTime(),
+          count: 0,
+        };
+      }
+      acc[date].count += 1;
+      return acc;
+    }, {});
+  
+    return Object.values(counts).sort((a, b) => a.timestamp - b.timestamp);
+  };
+  
+
+  
+
+useEffect(() => {
+  const fixedData = aggregateFixedAlerts(filteredAlerts);
+  setFixedChartData(fixedData);
+}, [filteredAlerts]);
+
+
+// Reopen Alerts
+
+
+const aggregateReopenedAlerts  = (alerts) => {
+  const reopenedAlerts = alerts.filter(alert => alert.dismissed_at);
+
+  const counts = reopenedAlerts.reduce((acc, alert) => {
+    const date = alert.dismissed_at .split("T")[0]; // Only date part
+    if (!acc[date]) {
+      acc[date] = {
+        date,
+        timestamp: new Date(date).getTime(),
+        count: 0,
+      };
+    }
+    acc[date].count += 1;
+    return acc;
+  }, {});
+
+  return Object.values(counts).sort((a, b) => a.timestamp - b.timestamp);
+};
+
+
+useEffect(() => {
+const reopenedData  = aggregateReopenedAlerts (filteredAlerts);
+setReopenedChartData(reopenedData);
+}, [filteredAlerts]);
+
+
   
 
   return (
@@ -520,7 +579,44 @@ const pieColors = {
         </LineChart>
       </ResponsiveContainer>
 
+      <h4>ReOpened Alerts Over Time</h4>
+      <ResponsiveContainer width="100%" height={300}>
+  <AreaChart data={reopenedChartData}>
+    <XAxis
+      dataKey="timestamp"
+      type="number"
+      domain={['auto', 'auto']}
+      tickFormatter={(tick) => format(new Date(tick), "MMM dd, yyyy HH:mm")}
+    />
+    <YAxis />
+    <Tooltip labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm")} />
+    <Area dataKey="count" fill="#0000FF" name="ReOpened Alerts" />
+  </AreaChart>
+</ResponsiveContainer>
 
+
+
+     
+
+<h2>Remediation </h2>
+<h4>Fixed Alerts Over Time</h4>
+<ResponsiveContainer width="100%" height={300}>
+  <AreaChart data={fixedChartData}>
+    <XAxis
+      dataKey="timestamp"
+      type="number"
+      domain={['auto', 'auto']}
+      tickFormatter={(tick) => format(new Date(tick), "MMM dd, yyyy HH:mm")}
+    />
+    <YAxis />
+    <Tooltip labelFormatter={(label) => format(new Date(label), "MMM dd, yyyy HH:mm")} />
+    <Area dataKey="count" fill="#0000FF" name="Fixed Alerts" />
+  </AreaChart>
+</ResponsiveContainer>
+
+
+
+      
       <h3>GitHub Security Alerts Table</h3>
 
 {filteredAlerts.length === 0 ? (
